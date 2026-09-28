@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stockroom · Panel de inventario</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#eef1ee;--surface:#fff;--ink:#17231f;--mute:#5d6b65;--line:#d6ddd8;--accent:#0f6b57;--accent-ink:#fff;--warn:#b7791f;--bad:#b3362b;--ok:#0f6b57;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111a17;--surface:#18241f;--ink:#e6efe9;--mute:#8fa198;--line:#2a3a33;--accent:#4cc3a3;--accent-ink:#06231b;--warn:#e0a94a;--bad:#ee7c70;--ok:#4cc3a3}}
+:root[data-theme="dark"]{--bg:#111a17;--surface:#18241f;--ink:#e6efe9;--mute:#8fa198;--line:#2a3a33;--accent:#4cc3a3;--accent-ink:#06231b;--warn:#e0a94a;--bad:#ee7c70;--ok:#4cc3a3}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,-apple-system,Arial,sans-serif}
+h1,h2,h3{font-family:Georgia,"Times New Roman",serif;margin:0;font-weight:700}
+button,input,select{font:inherit;color:inherit}
+input,select{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:8px 14px}
+button.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.dng{color:var(--bad)}
+button:disabled{opacity:.4;cursor:not-allowed}
+label{display:block;font-size:13px;color:var(--mute);margin-bottom:4px}
+.hide{display:none!important}
+.auth{max-width:400px;margin:8vh auto;padding:28px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.auth h1{font-size:28px;margin-bottom:4px}.auth p{color:var(--mute);margin:0 0 18px}
+.tabs{display:flex;gap:6px;margin-bottom:16px}.tabs button{flex:1}.tabs .on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.f{margin-bottom:12px}.err{color:var(--bad);font-size:13px;min-height:18px;margin-bottom:8px}
+.hint{font-size:12.5px;color:var(--mute);margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+header.top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:14px 22px;background:var(--surface);border-bottom:1px solid var(--line)}
+header.top h1{font-size:22px}.who{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
+.badge{padding:2px 9px;border-radius:99px;font-size:12px;border:1px solid var(--line)}
+.b-admin{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+main{max-width:1180px;margin:0 auto;padding:20px 22px 40px}
+.nav{display:flex;gap:8px;margin-bottom:16px}.nav .on{border-color:var(--accent);color:var(--accent);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.kpi b{display:block;font-family:Georgia,serif;font-size:26px}.kpi span{color:var(--mute);font-size:13px}
+.charts{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px}
+@media(max-width:760px){.charts{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px}
+.card h3{font-size:16px;margin-bottom:10px}.cv{position:relative;height:230px}
+.filters{display:grid;grid-template-columns:2fr repeat(5,1fr);gap:10px;align-items:end;margin-bottom:12px}
+@media(max-width:900px){.filters{grid-template-columns:1fr 1fr}}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:640px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:13px;color:var(--mute);font-weight:600;cursor:pointer;user-select:none}
+td.n,th.n{text-align:right}
+.st{font-size:12.5px;padding:2px 8px;border-radius:99px;border:1px solid currentColor}
+.s-ok{color:var(--ok)}.s-low{color:var(--warn)}.s-out{color:var(--bad)}
+.bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.pg{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px;color:var(--mute);font-size:13px}
+.empty{padding:28px;text-align:center;color:var(--mute)}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;z-index:9}
+.md{background:var(--surface);border-radius:10px;padding:22px;width:100%;max-width:440px;max-height:90%;overflow:auto;border:1px solid var(--line)}
+.md h3{margin-bottom:14px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.acts{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.toast{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:6px;z-index:10}
+</style>
+</head>
+<body>
+
+<section id="auth" class="auth">
+  <h1>Stockroom</h1>
+  <p>Panel de inventario para tu equipo.</p>
+  <div class="tabs"><button id="tL" class="on">Iniciar sesión</button><button id="tR">Crear cuenta</button></div>
+  <div id="fN" class="f hide"><label for="aN">Nombre</label><input id="aN" autocomplete="name"></div>
+  <div class="f"><label for="aE">Correo</label><input id="aE" type="email" autocomplete="email"></div>
+  <div class="f"><label for="aP">Contraseña</label><input id="aP" type="password" autocomplete="current-password"></div>
+  <div id="fR" class="f hide"><label for="aR">Rol</label><select id="aR"><option value="viewer">Lector (solo ver)</option><option value="editor">Editor (crear y editar)</option><option value="admin">Administrador (todo)</option></select></div>
+  <div id="aErr" class="err" role="alert"></div>
+  <button id="aGo" class="pri" style="width:100%">Entrar</button>
+  <div class="hint">Cuentas de prueba: admin@demo.com / admin123 · editor@demo.com / editor123 · viewer@demo.com / viewer123</div>
+</section>
+
+<div id="app" class="hide">
+  <header class="top">
+    <h1>Stockroom</h1>
+    <div class="who"><span id="uName"></span><span id="uRole" class="badge"></span><button id="bLogout">Salir</button></div>
+  </header>
+  <main>
+    <div class="nav"><button id="nInv" class="on">Inventario</button><button id="nLog">Movimientos</button><button id="nUsr" class="hide">Usuarios</button></div>
+
+    <div id="vInv">
+      <div class="kpis" id="kpis"></div>
+      <div class="charts">
+        <div class="card"><h3>Valor de stock por categoría</h3><div class="cv"><canvas id="c1"></canvas></div></div>
+        <div class="card"><h3>Estado del inventario</h3><div class="cv"><canvas id="c2"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="bar"><h3>Productos</h3><div style="display:flex;gap:8px"><button id="bCsv" class="hide">Exportar CSV</button><button id="bNew" class="pri">Nuevo producto</button></div></div>
+        <div class="filters">
+          <div><label for="fQ">Buscar</label><input id="fQ" placeholder="Nombre o SKU"></div>
+          <div><label for="fC">Categoría</label><select id="fC"></select></div>
+          <div><label for="fS">Estado</label><select id="fS"><option value="">Todos</option><option value="ok">Disponible</option><option value="low">Stock bajo</option><option value="out">Sin stock</option></select></div>
+          <div><label for="fMin">Precio mín.</label><input id="fMin" type="number" min="0"></div>
+          <div><label for="fMax">Precio máx.</label><input id="fMax" type="number" min="0"></div>
+          <div><button id="fClr" style="width:100%">Limpiar filtros</button></div>
+        </div>
+        <div class="tw"><table><thead><tr id="thead"></tr></thead><tbody id="tb"></tbody></table></div>
+        <div id="empty" class="empty hide">Ningún producto coincide con estos filtros.</div>
+        <div class="pg"><span id="pgInfo"></span><button id="pPrev">Anterior</button><button id="pNext">Siguiente</button></div>
+      </div>
+    </div>
+
+    <div id="vLog" class="card hide"><h3>Historial de movimientos de stock</h3><div class="tw"><table><thead><tr><th>Fecha</th><th>Producto</th><th>Tipo</th><th class="n">Cambio</th><th class="n">Stock resultante</th><th>Responsable</th></tr></thead><tbody id="lb"></tbody></table></div><div id="lEmpty" class="empty hide">Todavía no hay movimientos. Crea, edita el stock o elimina un producto para registrarlos.</div></div>
+
+    <div id="vUsr" class="card hide"><h3>Usuarios y roles</h3><div class="tw"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th></th></tr></thead><tbody id="ub"></tbody></table></div></div>
+  </main>
+</div>
+
+<div id="modal" class="ov hide"><div class="md" id="mdBody"></div></div>
+
+<script>
+const $=s=>document.querySelector(s), mem={};
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return mem[k]??null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}};
+const load=(k,d)=>{try{return JSON.parse(ls.get(k))??d}catch(e){return d}};
+const save=(k,v)=>ls.set(k,JSON.stringify(v));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>'$'+Number(n).toLocaleString('es-AR',{maximumFractionDigits:2});
+async function hash(s){try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return btoa(s)}}
+const CATS=['Electrónica','Oficina','Hogar','Herramientas','Embalaje'];
+const STL={ok:'Disponible',low:'Stock bajo',out:'Sin stock'};
+const status=i=>i.stock<=0?'out':i.stock<10?'low':'ok';
+let users=[],items=[],me=null,mode='login',sort={k:'name',d:1},page=1,charts={};
+const PER=8;let logs=load('sr_log',[]);
+
+async function seed(){
+  users=load('sr_users',null);
+  if(!users){users=[];for(const [n,e,p,r] of [['Ana Admin','admin@demo.com','admin123','admin'],['Eli Editor','editor@demo.com','editor123','editor'],['Leo Lector','viewer@demo.com','viewer123','viewer']])users.push({id:crypto.randomUUID?crypto.randomUUID():e,name:n,email:e,pass:await hash(p),role:r});save('sr_users',users)}
+  items=load('sr_items',null);
+  if(!items){const d=[['Teclado mecánico','ELE-001',0,45000,32],['Monitor 24"','ELE-002',0,180000,8],['Mouse inalámbrico','ELE-003',0,18000,54],['Resma A4 x500','OFI-001',1,9500,120],['Cuaderno tapa dura','OFI-002',1,4200,6],['Lapicera azul x12','OFI-003',1,3100,0],['Lámpara LED','HOG-001',2,12500,27],['Organizador de cajones','HOG-002',2,7800,4],['Taladro percutor','HER-001',3,96000,11],['Juego de destornilladores','HER-002',3,15500,38],['Caja de cartón M','EMB-001',4,650,300],['Cinta de embalar','EMB-002',4,1400,9],['Silla ergonómica','OFI-004',1,210000,3],['Auriculares BT','ELE-004',0,52000,19]];
+    items=d.map((x,i)=>({id:'p'+i,name:x[0],sku:x[1],cat:CATS[x[2]],price:x[3],stock:x[4]}));save('sr_items',items)}
+}
+const can=a=>me&&(me.role==='admin'||(me.role==='editor'&&a!=='delete'));
+
+/* ---------- Auth ---------- */
+function setMode(m){mode=m;$('#tL').classList.toggle('on',m==='login');$('#tR').classList.toggle('on',m==='reg');$('#fN').classList.toggle('hide',m==='login');$('#fR').classList.toggle('hide',m==='login');$('#aGo').textContent=m==='login'?'Entrar':'Crear cuenta';$('#aErr').textContent=''}
+$('#tL').onclick=()=>setMode('login');$('#tR').onclick=()=>setMode('reg');
+$('#aGo').onclick=async()=>{
+  const e=$('#aE').value.trim().toLowerCase(),p=$('#aP').value,err=$('#aErr');
+  if(!/^\S+@\S+\.\S+$/.test(e))return err.textContent='Ingresa un correo válido.';
+  if(p.length<6)return err.textContent='La contraseña debe tener al menos 6 caracteres.';
+  const h=await hash(p),u=users.find(x=>x.email===e);
+  if(mode==='login'){if(!u||u.pass!==h)return err.textContent='Correo o contraseña incorrectos.';me=u}
+  else{const n=$('#aN').value.trim();if(!n)return err.textContent='Ingresa tu nombre.';if(u)return err.textContent='Ese correo ya tiene una cuenta.';
+    me={id:'u'+Date.now(),name:n,email:e,pass:h,role:$('#aR').value};users.push(me);save('sr_users',users)}
+  save('sr_session',me.id);enter()};
+$('#bLogout').onclick=()=>{save('sr_session',null);me=null;$('#app').classList.add('hide');$('#auth').classList.remove('hide');$('#aP').value=''};
+
+function enter(){
+  $('#auth').classList.add('hide');$('#app').classList.remove('hide');
+  $('#uName').textContent=me.name;const r=$('#uRole');r.textContent={admin:'Administrador',editor:'Editor',viewer:'Lector'}[me.role];r.className='badge'+(me.role==='admin'?' b-admin':'');
+  $('#nUsr').classList.toggle('hide',me.role!=='admin');$('#bNew').disabled=!can('create');
+  showView('inv');buildFilters();render()}
+function showView(v){for(const [k,id] of [['inv','Inv'],['log','Log'],['usr','Usr']]){$('#v'+id).classList.toggle('hide',v!==k);$('#n'+id).classList.toggle('on',v===k)}if(v==='usr')renderUsers();else if(v==='log')renderLog();else render()}
+$('#nInv').onclick=()=>showView('inv');$('#nLog').onclick=()=>showView('log');$('#nUsr').onclick=()=>showView('usr');
+
+/* ---------- Filtros ---------- */
+function buildFilters(){$('#fC').innerHTML='<option value="">Todas</option>'+CATS.map(c=>`<option>${c}</option>`).join('')}
+['#fQ','#fC','#fS','#fMin','#fMax'].forEach(s=>$(s).addEventListener('input',()=>{page=1;render()}));
+$('#fClr').onclick=()=>{['#fQ','#fC','#fS','#fMin','#fMax'].forEach(s=>$(s).value='');page=1;render()};
+function filtered(){
+  const q=$('#fQ').value.toLowerCase().trim(),c=$('#fC').value,s=$('#fS').value,mn=$('#fMin').value,mx=$('#fMax').value;
+  return items.filter(i=>(!q||i.name.toLowerCase().includes(q)||i.sku.toLowerCase().includes(q))&&(!c||i.cat===c)&&(!s||status(i)===s)&&(mn===''||i.price>=+mn)&&(mx===''||i.price<=+mx))
+   .sort((a,b)=>{const x=a[sort.k],y=b[sort.k];return(typeof x==='number'?x-y:String(x).localeCompare(y))*sort.d})}
+
+/* ---------- Render ---------- */
+const COLS=[['name','Producto'],['sku','SKU'],['cat','Categoría'],['price','Precio','n'],['stock','Stock','n']];
+function render(){
+  const all=filtered();
+  $('#kpis').innerHTML=[['Productos',items.length],['Valor total',money(items.reduce((a,i)=>a+i.price*i.stock,0))],['Stock bajo',items.filter(i=>status(i)==='low').length],['Sin stock',items.filter(i=>status(i)==='out').length]].map(k=>`<div class="kpi"><b>${k[1]}</b><span>${k[0]}</span></div>`).join('');
+  $('#thead').innerHTML=COLS.map(c=>`<th class="${c[2]||''}" data-k="${c[0]}">${c[1]}${sort.k===c[0]?(sort.d>0?' ▲':' ▼'):''}</th>`).join('')+'<th>Estado</th><th></th>';
+  document.querySelectorAll('#thead th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;sort=sort.k===k?{k,d:-sort.d}:{k,d:1};render()});
+  const pages=Math.max(1,Math.ceil(all.length/PER));page=Math.min(page,pages);
+  const rows=all.slice((page-1)*PER,page*PER);
+  $('#tb').innerHTML=rows.map(i=>`<tr><td>${esc(i.name)}</td><td>${esc(i.sku)}</td><td>${esc(i.cat)}</td><td class="n">${money(i.price)}</td><td class="n">${i.stock}</td><td><span class="st s-${status(i)}">${STL[status(i)]}</span></td><td style="text-align:right"><button data-e="${i.id}" ${can('update')?'':'disabled'}>Editar</button> <button class="dng" data-d="${i.id}" ${can('delete')?'':'disabled'}>Eliminar</button></td></tr>`).join('');
+  $('#empty').classList.toggle('hide',rows.length>0);
+  $('#pgInfo').textContent=`${all.length} resultados · página ${page} de ${pages}`;
+  $('#pPrev').disabled=page<=1;$('#pNext').disabled=page>=pages;
+  document.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>form(items.find(i=>i.id===b.dataset.e)));
+  document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>confirmDel(items.find(i=>i.id===b.dataset.d)));
+  charts_(all)}
+$('#pPrev').onclick=()=>{page--;render()};$('#pNext').onclick=()=>{page++;render()};
+
+function charts_(all){
+  if(typeof Chart==='undefined')return;
+  const cs=getComputedStyle(document.documentElement),v=n=>cs.getPropertyValue(n).trim();
+  Chart.defaults.color=v('--mute');Chart.defaults.borderColor=v('--line');
+  const byCat=CATS.map(c=>all.filter(i=>i.cat===c).reduce((a,i)=>a+i.price*i.stock,0));
+  const st=['ok','low','out'].map(s=>all.filter(i=>status(i)===s).length);
+  Object.values(charts).forEach(c=>c.destroy());
+  charts.a=new Chart($('#c1'),{type:'bar',data:{labels:CATS,datasets:[{label:'Valor',data:byCat,backgroundColor:v('--accent'),borderRadius:4}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:x=>'$'+(x/1000)+'k'}}}}});
+  charts.b=new Chart($('#c2'),{type:'doughnut',data:{labels:Object.values(STL),datasets:[{data:st,backgroundColor:[v('--ok'),v('--warn'),v('--bad')],borderWidth:0}]},options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}})}
+
+/* ---------- CRUD ---------- */
+function open_(html){$('#mdBody').innerHTML=html;$('#modal').classList.remove('hide')}
+function close_(){$('#modal').classList.add('hide')}
+$('#modal').onclick=e=>{if(e.target.id==='modal')close_()};
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2200)}
+$('#bNew').onclick=()=>form(null);
+function form(it){
+  if(!can(it?'update':'create'))return;
+  open_(`<h3>${it?'Editar producto':'Nuevo producto'}</h3>
+  <div class="f"><label for="mN">Nombre</label><input id="mN" value="${it?esc(it.name):''}"></div>
+  <div class="row"><div class="f"><label for="mS">SKU</label><input id="mS" value="${it?esc(it.sku):''}"></div>
+  <div class="f"><label for="mC">Categoría</label><select id="mC">${CATS.map(c=>`<option ${it&&it.cat===c?'selected':''}>${c}</option>`).join('')}</select></div></div>
+  <div class="row"><div class="f"><label for="mP">Precio</label><input id="mP" type="number" min="0" value="${it?it.price:''}"></div>
+  <div class="f"><label for="mK">Stock</label><input id="mK" type="number" min="0" value="${it?it.stock:''}"></div></div>
+  <div id="mErr" class="err"></div>
+  <div class="acts"><button id="mX">Cancelar</button><button id="mOk" class="pri">Guardar cambios</button></div>`);
+  $('#mX').onclick=close_;
+  $('#mOk').onclick=()=>{
+    const o={name:$('#mN').value.trim(),sku:$('#mS').value.trim().toUpperCase(),cat:$('#mC').value,price:parseFloat($('#mP').value),stock:parseInt($('#mK').value,10)};
+    if(!o.name||!o.sku||isNaN(o.price)||isNaN(o.stock)||o.price<0||o.stock<0)return $('#mErr').textContent='Completa todos los campos con valores válidos.';
+    if(items.some(x=>x.sku===o.sku&&(!it||x.id!==it.id)))return $('#mErr').textContent='Ese SKU ya existe.';
+    if(it){const b=it.stock;Object.assign(it,o);if(o.stock!==b)addLog('Ajuste',it,o.stock-b,o.stock)}
+    else{const n={id:'p'+Date.now(),...o};items.unshift(n);addLog('Alta',n,o.stock,o.stock)}
+    save('sr_items',items);close_();toast(it?'Producto actualizado':'Producto creado');render()}}
+function confirmDel(it){
+  if(!can('delete'))return;
+  open_(`<h3>Eliminar producto</h3><p>¿Eliminar <b>${esc(it.name)}</b>? Esta acción no se puede deshacer.</p><div class="acts"><button id="mX">Cancelar</button><button id="mOk" class="pri dng" style="color:#fff;background:var(--bad);border-color:var(--bad)">Eliminar</button></div>`);
+  $('#mX').onclick=close_;
+  $('#mOk').onclick=()=>{addLog('Baja',it,-it.stock,0);items=items.filter(i=>i.id!==it.id);save('sr_items',items);close_();toast('Producto eliminado');render()}}
+
+/* ---------- Historial de stock ---------- */
+function addLog(type,it,delta,after){logs.unshift({t:Date.now(),sku:it.sku,name:it.name,type,delta,after,by:me.name});logs=logs.slice(0,300);save('sr_log',logs)}
+function renderLog(){
+  $('#lb').innerHTML=logs.map(l=>`<tr><td>${new Date(l.t).toLocaleString('es-AR',{dateStyle:'short',timeStyle:'short'})}</td><td>${esc(l.name)} <span style="color:var(--mute)">${esc(l.sku)}</span></td><td>${l.type}</td><td class="n ${l.delta<0?'s-out':'s-ok'}">${l.delta>0?'+':''}${l.delta}</td><td class="n">${l.after}</td><td>${esc(l.by)}</td></tr>`).join('');
+  $('#lEmpty').classList.toggle('hide',logs.length>0)}
+
+/* ---------- Exportar CSV ---------- */
+let dl=null;
+(async()=>{try{dl=window.claude?await claude.use('downloads'):null}catch(e){dl=null}if(dl)$('#bCsv').classList.remove('hide')})();
+$('#bCsv').onclick=async()=>{
+  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const rows=[['Producto','SKU','Categoría','Precio','Stock','Estado'],...filtered().map(i=>[i.name,i.sku,i.cat,i.price,i.stock,STL[status(i)]])];
+  try{await dl.save({filename:'inventario-'+new Date().toISOString().slice(0,10)+'.csv',data:'\uFEFF'+rows.map(r=>r.map(q).join(',')).join('\n')});toast('Inventario exportado')}
+  catch(e){if(e&&e.code!=='declined')toast('No se pudo exportar el archivo')}};
+
+/* ---------- Usuarios (solo admin) ---------- */
+function renderUsers(){
+  $('#ub').innerHTML=users.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td><select data-r="${u.id}" ${u.id===me.id?'disabled':''}>${['admin','editor','viewer'].map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${{admin:'Administrador',editor:'Editor',viewer:'Lector'}[r]}</option>`).join('')}</select></td><td>${u.id===me.id?'Tú':''}</td></tr>`).join('');
+  document.querySelectorAll('[data-r]').forEach(s=>s.onchange=()=>{users.find(u=>u.id===s.dataset.r).role=s.value;save('sr_users',users);toast('Rol actualizado')})}
+
+/* ---------- Inicio ---------- */
+(async()=>{await seed();const sid=load('sr_session',null);const u=users.find(x=>x.id===sid);if(u){me=u;enter()}})();
+</script>
+</body>
+</html>
